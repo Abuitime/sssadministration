@@ -12,7 +12,7 @@ import jinja2
 
 from google.appengine.ext import db
 
-template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+template_dir = os.path.join(os.path.dirname(__file__), 'views')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
 
@@ -35,7 +35,7 @@ class PageHandler(webapp2.RequestHandler):
         self.response.out.write(*a, **kw)
 
     def render_str(self, template, **params):
-        params['user'] = self.user
+        #params['user'] = self.user
         t = jinja_env.get_template(template)
         return t.render(params)
 
@@ -63,37 +63,37 @@ class PageHandler(webapp2.RequestHandler):
     def logout(self):
         self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
 
-    def initialize(self, *a, **kw):
-        webapp2.RequestHandler.initialize(self, *a, **kw)
-        uid = self.read_secure_cookie('user_id')
-        self.user = uid and User.by_id(int(uid))
+    #def initialize(self, *a, **kw):
+    #    webapp2.RequestHandler.initialize(self, *a, **kw)
+    #    uid = self.read_secure_cookie('user_id')
+    #    self.user = uid and User.by_id(int(uid))
 
-        if self.request.url.endswith('.json'):
-            self.format = 'json'
-        else:
-            self.format = 'html'
+     #   if self.request.url.endswith('.json'):
+     #      self.format = 'json'
+     #   else:
+     #       self.format = 'html'
 
 class MainPage(PageHandler):
   def get(self):
       if self.request.get('user'):
         user = self.request.get('user')
-        msg = ("Welcome" + user + "!")
+        msg = ("Welcome " + user + "!")
         self.render("index.html", message = msg)
       else:
-        self.response.write("hello world")
-        #self.render("index.html", message = "")
+        #self.response.write("hello world")
+        self.render("index.html", message = "")
 
   def post(self):
       pid = self.request.get('pid')
       if(len(pid) == 35):
-        pid = pid[2:11]
+        pid = pid[2:10]
       if not valid_pid(pid):
         msg = 'Invalid PID'
         self.render('index.html', message = msg)   
            
       u = User.login(pid)
       if u:
-        msg = ("Welcome" + u.name + "!")
+        msg = ("Welcome " + u.name + "!")
         # aad user to event model or whatever we're using to keep track of members
         self.render('index.html', message = msg)
       else:
@@ -127,7 +127,7 @@ class User(db.Model):
                     year = year)
 
     @classmethod
-    def login(pid):
+    def login(cls, pid):
         u = cls.by_pid(pid)
         return u
 
@@ -161,7 +161,7 @@ class Signup(PageHandler):
         self.year = self.request.get('year')
         self.number = self.request.get('number')
 
-        params = dict(name = self.username,
+        params = dict(name = self.name,
                       last_name = self.last_name,
                       pid = self.pid,
                       email = self.email,
