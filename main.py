@@ -4,7 +4,6 @@ import random
 import hashlib
 import hmac
 import logging
-import json
 from string import letters
 
 import webapp2
@@ -16,8 +15,13 @@ template_dir = os.path.join(os.path.dirname(__file__), 'views')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
 
-secret = 'fart'
-
+key = 'KDdwpDV9jB'
+secret = 'abamjlrr'
+input_key = """
+            <div class="6u">
+            <input class="text" type="text" name="key" id="key" value="" placeholder="Key" />
+            </div>
+            """
 def render_str(template, **params):
     t = jinja_env.get_template(template)
     return t.render(params)
@@ -29,6 +33,27 @@ def check_secure_val(secure_val):
     val = secure_val.split('|')[0]
     if secure_val == make_secure_val(val):
         return val
+
+def make_salt(length = 5):
+    return ''.join(random.choice(letters) for x in xrange(length))
+
+def make_pw_hash(name, pw, salt = None):
+    if not salt:
+        salt = make_salt()
+    h = hashlib.sha256(name + pw + salt).hexdigest()
+    return '%s,%s' % (salt, h)
+
+def valid_pw(name, password, h):
+    salt = h.split(',')[0]
+    return h == make_pw_hash(name, password, salt)
+
+def admin_auth():
+    admin = self.request.cookies.get('admin')
+    password = self.request.cookies.get('password')
+    if admin and password
+        if check_secure_val(admin) and check_secure_val(password):
+            return True
+    return False
 
 class PageHandler(webapp2.RequestHandler):
     def write(self, *a, **kw):
@@ -42,11 +67,6 @@ class PageHandler(webapp2.RequestHandler):
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
 
-    def render_json(self, d):
-        json_txt = json.dumps(d)
-        self.response.headers['Content-Type'] = 'application/json; charset=UTF-8'
-        self.write(json_txt)
-
     def set_secure_cookie(self, name, val):
         cookie_val = make_secure_val(val)
         self.response.headers.add_header(
@@ -57,21 +77,9 @@ class PageHandler(webapp2.RequestHandler):
         cookie_val = self.request.cookies.get(name)
         return cookie_val and check_secure_val(cookie_val)
 
-    def login(self, user):
-        self.set_secure_cookie('user_id', str(user.key().id()))
-
     def logout(self):
-        self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
-
-    #def initialize(self, *a, **kw):
-    #    webapp2.RequestHandler.initialize(self, *a, **kw)
-    #    uid = self.read_secure_cookie('user_id')
-    #    self.user = uid and User.by_id(int(uid))
-
-     #   if self.request.url.endswith('.json'):
-     #      self.format = 'json'
-     #   else:
-     #       self.format = 'html'
+        self.response.headers.add_header('Set-Cookie', 'admin=; Path=/')
+        self.response.headers.add_header('Set-Cookie', 'password=; Path=/')
 
 class MainPage(PageHandler):
   def get(self):
@@ -90,14 +98,35 @@ class MainPage(PageHandler):
       if not valid_pid(pid):
         msg = 'Invalid PID'
         self.render('index.html', message = msg)   
-           
-      u = User.login(pid)
-      if u:
-        msg = ("Welcome " + u.name + "!")
-        # aad user to event model or whatever we're using to keep track of members
-        self.render('index.html', message = msg)
       else:
-        self.redirect('/signup?pid=%s' %(pid))
+        u = User.login(pid)
+        if u:
+          msg = ("Welcome " + u.name + "!")
+          self.render('index.html', message = msg)
+        else:
+          self.redirect('/signup?pid=%s' %(pid))
+class Event(db.Model):
+    name = db.StringProperty(required = True)
+    date = datetime.date(required = True)
+    location = db.StringProperty(required = True)
+    description = db.Text(required = True)
+    participants = db.Text
+
+    @classmethod
+    def create(cls, name, date, location, description, participants):
+        return User(name = name,
+                    date = date,
+                    location = location,
+                    description = description,
+                    participants = participants)
+
+    def by_date(cls, date):
+        e = Event.all().filter('date =', date).get()
+        return e
+
+    def by_name(cls, name):
+        e = Event.all().filter('name =', name).get()
+        return e
 
 class User(db.Model):
     pid = db.StringProperty(required = True)
@@ -107,7 +136,8 @@ class User(db.Model):
     email = db.StringProperty(required = True)
     number = db.StringProperty(required = True)
     year = db.StringProperty(required = True)
-
+    admin = bool(required = True)
+    password = db.StringProperty(required = True)
     @classmethod
     def by_name(cls, name):
         u = User.all().filter('name =', name).get()
@@ -146,10 +176,18 @@ def valid_pid(pid):
     if len(pid) != 8:
         return False
     return True 
-
+def valid_number(number):
+    if len(number) != 10:
+        return False
+    return True
 class Signup(PageHandler):
     def get(self):
-        self.render("signup.html", pid = self.request.get('pid'))
+        if self.request.get('pid'):
+            self.render("signup.html", pid = self.request.get('pid'))
+        elif admin_auth()
+                self.render("signup.html", key = input_key)
+        else:
+            self.render("index.html", message = "please enter your PID")
 
     def post(self):
         have_error = False
@@ -160,6 +198,7 @@ class Signup(PageHandler):
         self.major = self.request.get('major')
         self.year = self.request.get('year')
         self.number = self.request.get('number')
+        self.admin = False
 
         params = dict(name = self.name,
                       last_name = self.last_name,
@@ -167,17 +206,28 @@ class Signup(PageHandler):
                       email = self.email,
                       major = self.major,
                       year = self.year,
-                      number = self.number
+                      number = self.number,
                       )
 
         if not valid_email(self.email):
             params['error_email'] = "That's not a valid email."
             have_error = True
         if not valid_pid(self.pid):
-            params['error_pid'] = "That's not a valid PID"
+            params['error_pid'] = "That's not a valid PID."
             have_error = True
+        if not valid_number(self.number):
+            params['error_number'] = "That's not a valid number."
+            have_error = True
+        if admin_auth():
+            if self.request.get("key") and self.request.get("key") == key
+                self.admin = True
+            else:
+                have_error = True
         if have_error:
-            self.render('signup.html', **params)
+            if auth_admin()
+                self.render('signup.html', **params, key = key_input)
+            else:
+                self.render('signup.html', **params)
         else:
             self.done()
 
@@ -190,15 +240,84 @@ class Register(Signup):
         u = User.by_pid(self.pid)
         if u:
             msg = 'That user already exists.'
-            self.render('signup.html', error_exists = msg)
+            if admin_auth():
+                self.render('signup.html', error_exists = msg, key = key_input)
+            else: 
+                self.render('signup.html', error_exists = msg)
         else:
-            u = User.register(self.pid, self.name, self.last_name, self.major, self.email, self.number, self.year)
+            u = User.register(self.pid, self.name, self.last_name, self.major, self.email, self.number, self.year, self.admin, self.password)
             u.put()
 
-            self.login(u)
-            self.redirect('/?user=%s' %(u.name))
+            if admin_auth():
+                self.redirect('/admin/tools?msg=User_Added')
+            else
+                self.login(u)
+                self.redirect('/?user=%s' %(u.name))
+
+class Admin(PageHandler):
+    def get(self):
+        self.render('admin_login.html')
+    def post(self):
+        admin = self.request.get('admin')
+        if admin:
+            u = User.by_pid(admin)
+            password = self.request.get('password')
+            if (User.all().count() == 0 and password) or (u and password):
+                if valid_pw(admin, password, u.password):
+                    set_secure_cookie("admin", admin)
+                    set_secure_cookie("password", password)
+                    self.redirect('/admin/tools')
+        self.render('admin_login.html', error = "Invalid Login")
+
+class Tools(PageHandler):
+    def get(self):
+        if admin_auth():
+            msg = self.request.get('msg')
+            self.render('tools.html', message = msg)
+        else
+            self.redirect("/admin")
+
+class Management(PageHandler):
+    def get(self):
+        if admin_auth():
+            self.render('mgmt.html')
+        else
+            self.redirect("/admin")
+
+class Event(PageHandler):
+    def get(self):
+        if admin_auth():
+            self.render("event.html")
+        else:
+            self.redirect('/admin')
+    def post(self):
+        if admin_auth():
+            name = self.request.get('name')
+            date = self.request.get('date')
+            location = self.request.get('location')
+            description = self.request.get('description')
+            if(name and date and location and description):
+                e = Event.create(name, date, location, description)
+                e.put()
+                self.redirect("/admin/tools?msg=Event_Created")
+            else:
+                self.render("event.html", name = name, date = date, 
+                            location = location, description = description,
+                            error = "invalid information")
+        else:
+            self.redirect('/admin')
+
+class Logout(PageHandler):
+    self.logout()
+    self.redirect('/')
 
 app = webapp2.WSGIApplication([('/', MainPage),
                                ('/signup', Register),
+                               ('/admin', Admin),
+                               ('/admin/tools', Tools),
+                               ('/admin/tools/mgmt', Management),
+                               ('/admin/tools/admin_reg', Register),
+                               ('/admin/tools/event', Event),
+                               ('/admin/logout', Logout)
                                ],
                               debug=True)

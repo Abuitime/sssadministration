@@ -48,15 +48,18 @@
 						</div>
 						<div class="row">
 							<div class="6u">
-								<input class="text" type="text" name="email" id="email" value="" placeholder="email@ucsd.edu" />{{error_email}}
+								<input class="text" type="text" name="email" id="email" value="" placeholder="email@ucsd.edu" />
+								<span class="error_msg">{{error_email}}</span>
 							</div>
 							<div class="6u">
-								<input class="text" type="text" name="pid" id="pid" value="{{pid}}" placeholder="PID" />{{error_pid}}
+								<input class="text" type="text" name="pid" id="pid" value="{{pid}}" placeholder="PID" />
+								<span class="error_msg">{{error_pid}}</span>
 							</div>
 						</div>
 						<div class="row">
 							<div class="6u">
 								<input class="text" type="tel" name="number" id="number" value="" placeholder="Phone Number" />
+								<span class="error_msg">{{error_number}}</span>
 							</div>
 							<div class="6u">
 								<select name="year" id="year">
@@ -85,6 +88,7 @@
 								</select>
 							</div>
 						</div>
+						{{key}}
 						<div class="row">
 							<div class="12u">
 								<input class="text" type="text" name="concerns" id="concerns" value="" placeholder="Enter your Concerns" />
