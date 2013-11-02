@@ -6,15 +6,15 @@ import hmac
 import logging
 import datetime
 from string import letters
-
+import HTMLParser
 import webapp2
 import jinja2
-
 from google.appengine.ext import db
 
 template_dir = os.path.join(os.path.dirname(__file__), 'views')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
-                               autoescape = True)
+                               autoescape = True,
+                               extensions = ['jinja2.ext.autoescape'])
 
 key = 'KDdwpDV9jB'
 secret = 'abamjlrr'
@@ -22,7 +22,13 @@ input_key = """
             <div class="6u">
             <input class="text" type="text" name="key" id="key" value="" placeholder="Key" />
             </div>
+            <div class="6u">
+            <input class="text" type="text" name="password" id="password" value="" placeholder="Password" />
+            </div>
             """
+#html_parser = HTMLParser.HTMLParser()
+#input_key = html_parser.unescape(input_key)
+
 def render_str(template, **params):
     t = jinja_env.get_template(template)
     return t.render(params)
@@ -48,15 +54,15 @@ def valid_pw(name, password, h):
     salt = h.split(',')[0]
     return h == make_pw_hash(name, password, salt)
 
-def admin_auth():
-    admin = self.request.cookies.get('admin')
-    password = self.request.cookies.get('password')
-    if admin and password:
-        if check_secure_val(admin) and check_secure_val(password):
-            return True
-    return False
 
 class PageHandler(webapp2.RequestHandler):
+    def admin_auth(self):
+        admin = self.request.cookies.get('admin')
+        password = self.request.cookies.get('password')
+        if admin and password:
+            if check_secure_val(admin) and check_secure_val(password):
+                return True
+        return False    
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
 
@@ -137,7 +143,7 @@ class User(db.Model):
     email = db.StringProperty(required = True)
     number = db.StringProperty(required = True)
     year = db.StringProperty(required = True)
-    admin = bool
+    admin = db.BooleanProperty()
     password = db.StringProperty(required = True)
     @classmethod
     def by_name(cls, name):
@@ -148,14 +154,16 @@ class User(db.Model):
         u = User.all().filter('pid =', pid).get()
         return u
     @classmethod
-    def register(cls, pid, name, last_name, major, email, number, year):
+    def register(cls, pid, name, last_name, major, email, number, year, admin, password):
         return User(pid = pid,
                     name = name,
                     last_name = last_name,
                     major = major,
                     email = email,
                     number = number,
-                    year = year)
+                    year = year,
+                    admin = admin,
+                    password = password)
 
     @classmethod
     def login(cls, pid):
@@ -183,10 +191,16 @@ def valid_number(number):
     return True
 class Signup(PageHandler):
     def get(self):
-        if self.request.get('pid'):
+        if User.all().count() == 0 or self.admin_auth():
+            params = dict()
+            params['key'] = input_key
+            if self.request.get('pid'):
+                params['pid'] = self.request.get('pid')
+            self.render("signup.html", **params)
+
+        elif self.request.get('pid'):
             self.render("signup.html", pid = self.request.get('pid'))
-        elif User.all().count() == 0 or admin_auth():
-                self.render("signup.html", key = input_key)
+
         else:
             self.render("index.html", message = "please enter your PID")
 
@@ -210,6 +224,17 @@ class Signup(PageHandler):
                       year = self.year,
                       number = self.number,
                       )
+        if not self.name or self.last_name:
+            params['error_name'] = "That's not a complete name."
+            have_error = True
+        if not self.major:
+            params['error_major'] = "Please select a major."
+            have_error = True
+        if not self.year:
+            params['error_year'] = "Please select your year."
+            have_error = True
+        if User.all().count() == 0 and not valid_password(password):
+            params['error_password'] = "That is not a valid password."
 
         if not valid_email(self.email):
             params['error_email'] = "That's not a valid email."
@@ -218,16 +243,17 @@ class Signup(PageHandler):
             params['error_pid'] = "That's not a valid PID."
             have_error = True
         if not valid_number(self.number):
-            params['error_number'] = "That's not a valid number."
+            params['error_number'] = "That's not a valid phone number."
             have_error = True
-        if admin_auth():
+        if self.admin_auth() or User.all().count() == 0:
             if self.request.get("key") and self.request.get("key") == key:
                 self.admin = True
+                self.password = self.request.get("password")
             else:
                 have_error = True
         if have_error:
-            if admin_auth():
-                params['key'] = key_input
+            if self.admin_auth() or User.all().count() == 0:
+                params['key'] = input_key
                 self.render('signup.html', **params)
             else:
                 self.render('signup.html', **params)
@@ -243,29 +269,31 @@ class Register(Signup):
         u = User.by_pid(self.pid)
         if u:
             msg = 'That user already exists.'
-            if admin_auth():
-                self.render('signup.html', error_exists = msg, key = key_input)
+            if self.admin_auth():
+                self.render('signup.html', error_exists = msg, key = input_key)
             else: 
                 self.render('signup.html', error_exists = msg)
         else:
             u = User.register(self.pid, self.name, self.last_name, self.major, self.email, self.number, self.year, self.admin, self.password)
             u.put()
 
-            if admin_auth():
+            if self.admin_auth():
                 self.redirect('/admin/tools?msg=User_Added')
             else:
-                self.login(u)
+                User.login(u)
                 self.redirect('/?user=%s' %(u.name))
 
 class Admin(PageHandler):
     def get(self):
+        if(User.all().count() == 0):
+            self.redirect('/signup')
         self.render('admin_login.html')
     def post(self):
         admin = self.request.get('admin')
         if admin:
             u = User.by_pid(admin)
             password = self.request.get('password')
-            if (User.all().count() == 0 and password) or (u and password):
+            if u and password:
                 if valid_pw(admin, password, u.password):
                     set_secure_cookie("admin", admin)
                     set_secure_cookie("password", password)
@@ -274,7 +302,7 @@ class Admin(PageHandler):
 
 class Tools(PageHandler):
     def get(self):
-        if admin_auth():
+        if self.admin_auth():
             msg = self.request.get('msg')
             self.render('tools.html', message = msg)
         else:
@@ -282,19 +310,19 @@ class Tools(PageHandler):
 
 class Management(PageHandler):
     def get(self):
-        if admin_auth():
+        if self.admin_auth():
             self.render('mgmt.html')
         else:
             self.redirect("/admin")
 
 class Event(PageHandler):
     def get(self):
-        if admin_auth():
+        if self.admin_auth():
             self.render("event.html")
         else:
             self.redirect('/admin')
     def post(self):
-        if admin_auth():
+        if self.admin_auth():
             name = self.request.get('name')
             date = self.request.get('date')
             location = self.request.get('location')

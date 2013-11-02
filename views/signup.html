@@ -45,7 +45,7 @@
 							<div class="6u">
 								<input class="text" type="text" name="last_name" id="last_name" value="" placeholder="Last Name" />
 							</div>
-							
+							<span class="error_msg">{{error_name}}</span>
 						</div>
 						<div class="row">
 							<div class="6u">
@@ -65,12 +65,13 @@
 							<div class="6u">
 								<select name="year" id="year">
 									<option value="">Year</option>
-									<option value="1">1nd</option>
+									<option value="1">1st</option>
 									<option value="2">2nd</option>
 									<option value="3">3rd</option>
 									<option value="4">4th</option>
 									<option value="5">5th</option>
 								</select>
+								<span class="error_msg">{{error_year}}</span>
 							</div>
 						</div>
 						<div class="row">
@@ -87,19 +88,13 @@
 									<option value="Chemical Engineering">Chemical Engineering</option>
 									<option value="Structural Engineering">Structural Engineering</option>
 								</select>
+								<span class="error_msg">{{error_major}}</span>
 							</div>
 						</div>
+						{% autoescape false %}
 						{{key}}
-						<div class="row">
-							<div class="12u">
-								<input class="text" type="text" name="concerns" id="concerns" value="" placeholder="Enter your Concerns" />
-							</div>
-						</div>
-						<div class="row">
-							<div class="12u">
-								<textarea name="message" id="message" placeholder="Enter your message"></textarea>
-							</div>
-						</div>
+						{% endautoescape %}
+
 						<div class="row">
 							<div class="12u">
 								<ul class="actions">
