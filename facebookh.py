@@ -153,8 +153,8 @@ jinja_environment = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__))
 )
 
-app = webapp2.WSGIApplication(
-    [('/', HomeHandler), ('/logout', LogoutHandler)],
-    debug=True,
-    config=config
-)
+#app = webapp2.WSGIApplication(
+#    [('/', HomeHandler), ('/logout', LogoutHandler)],
+ #   debug=True,
+ #   config=config
+#)
