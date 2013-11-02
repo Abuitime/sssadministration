@@ -4,6 +4,7 @@ import random
 import hashlib
 import hmac
 import logging
+import datetime
 from string import letters
 
 import webapp2
@@ -50,7 +51,7 @@ def valid_pw(name, password, h):
 def admin_auth():
     admin = self.request.cookies.get('admin')
     password = self.request.cookies.get('password')
-    if admin and password
+    if admin and password:
         if check_secure_val(admin) and check_secure_val(password):
             return True
     return False
@@ -107,9 +108,9 @@ class MainPage(PageHandler):
           self.redirect('/signup?pid=%s' %(pid))
 class Event(db.Model):
     name = db.StringProperty(required = True)
-    date = datetime.date(required = True)
+    date = db.StringProperty(required = True)
     location = db.StringProperty(required = True)
-    description = db.Text(required = True)
+    description = db.Text
     participants = db.Text
 
     @classmethod
@@ -136,7 +137,7 @@ class User(db.Model):
     email = db.StringProperty(required = True)
     number = db.StringProperty(required = True)
     year = db.StringProperty(required = True)
-    admin = bool(required = True)
+    admin = bool
     password = db.StringProperty(required = True)
     @classmethod
     def by_name(cls, name):
@@ -184,7 +185,7 @@ class Signup(PageHandler):
     def get(self):
         if self.request.get('pid'):
             self.render("signup.html", pid = self.request.get('pid'))
-        elif admin_auth()
+        elif User.all().count() == 0 or admin_auth():
                 self.render("signup.html", key = input_key)
         else:
             self.render("index.html", message = "please enter your PID")
@@ -199,6 +200,7 @@ class Signup(PageHandler):
         self.year = self.request.get('year')
         self.number = self.request.get('number')
         self.admin = False
+        self.password = ""
 
         params = dict(name = self.name,
                       last_name = self.last_name,
@@ -219,13 +221,14 @@ class Signup(PageHandler):
             params['error_number'] = "That's not a valid number."
             have_error = True
         if admin_auth():
-            if self.request.get("key") and self.request.get("key") == key
+            if self.request.get("key") and self.request.get("key") == key:
                 self.admin = True
             else:
                 have_error = True
         if have_error:
-            if auth_admin()
-                self.render('signup.html', **params, key = key_input)
+            if admin_auth():
+                params['key'] = key_input
+                self.render('signup.html', **params)
             else:
                 self.render('signup.html', **params)
         else:
@@ -250,7 +253,7 @@ class Register(Signup):
 
             if admin_auth():
                 self.redirect('/admin/tools?msg=User_Added')
-            else
+            else:
                 self.login(u)
                 self.redirect('/?user=%s' %(u.name))
 
@@ -266,7 +269,7 @@ class Admin(PageHandler):
                 if valid_pw(admin, password, u.password):
                     set_secure_cookie("admin", admin)
                     set_secure_cookie("password", password)
-                    self.redirect('/admin/tools')
+                    self.redirect('/admin/tools?msg='%("Hello_"+u.name))
         self.render('admin_login.html', error = "Invalid Login")
 
 class Tools(PageHandler):
@@ -274,14 +277,14 @@ class Tools(PageHandler):
         if admin_auth():
             msg = self.request.get('msg')
             self.render('tools.html', message = msg)
-        else
+        else:
             self.redirect("/admin")
 
 class Management(PageHandler):
     def get(self):
         if admin_auth():
             self.render('mgmt.html')
-        else
+        else:
             self.redirect("/admin")
 
 class Event(PageHandler):
@@ -308,8 +311,9 @@ class Event(PageHandler):
             self.redirect('/admin')
 
 class Logout(PageHandler):
-    self.logout()
-    self.redirect('/')
+    def get(self):
+        self.logout()
+        self.redirect('/')
 
 app = webapp2.WSGIApplication([('/', MainPage),
                                ('/signup', Register),
