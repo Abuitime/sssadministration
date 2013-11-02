@@ -12,7 +12,7 @@ import jinja2
 
 from google.appengine.ext import db
 
-template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+template_dir = os.path.join(os.path.dirname(__file__), 'views')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True)
 
@@ -80,13 +80,13 @@ class MainPage(PageHandler):
         msg = ("Welcome" + user + "!")
         self.render("index.html", message = msg)
       else:
-        self.response.write("hello world")
-        #self.render("index.html", message = "")
+        #self.response.write("hello world")
+        self.render("index.html", message = "")
 
   def post(self):
       pid = self.request.get('pid')
       if(len(pid) == 35):
-        pid = pid[2:11]
+        pid = pid[2:10]
       if not valid_pid(pid):
         msg = 'Invalid PID'
         self.render('index.html', message = msg)   
@@ -127,7 +127,7 @@ class User(db.Model):
                     year = year)
 
     @classmethod
-    def login(pid):
+    def login(cls, pid):
         u = cls.by_pid(pid)
         return u
 
@@ -161,7 +161,7 @@ class Signup(PageHandler):
         self.year = self.request.get('year')
         self.number = self.request.get('number')
 
-        params = dict(name = self.username,
+        params = dict(name = self.name,
                       last_name = self.last_name,
                       pid = self.pid,
                       email = self.email,

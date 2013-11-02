@@ -8,14 +8,14 @@
 		<meta name="keywords" content="" />
 		<link href="http://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,300italic" rel="stylesheet" type="text/css" />
 		<!--[if lte IE 8]><script src="css/ie/html5shiv.js"></script><![endif]-->
-		<script src="js/jquery.min.js"></script>
-		<script src="js/jquery.poptrox.min.js"></script>
-		<script src="js/skel.min.js"></script>
-		<script src="js/init.js"></script>
-		<noscript>
-			<link rel="stylesheet" href="css/skel-noscript.css" />
-			<link rel="stylesheet" href="css/style.css" />
-		</noscript>
+		<script src="../static/js/jquery.min.js"></script>
+		<script src="../static/js/jquery.poptrox.min.js"></script>
+		<script src="../static/js/skel.min.js"></script>
+		<script src="../static/js/init.js"></script>
+
+			<link rel="stylesheet" href="../static/css/skel-noscript.css" />
+			<link rel="stylesheet" href="../static/css/style.css" />
+
 		<!--[if lte IE 8]><link rel="stylesheet" href="css/ie/v8.css" /><![endif]-->
 	</head>
 	<body>
@@ -35,7 +35,7 @@
 					<header>
 						<h3>Form</h3>
 					</header>
-					<form method="post" action="#">
+					<form method="post">
 						<div>{{_exists}}</div>
 						<div class="row">
 							<div class="6u">
@@ -51,7 +51,7 @@
 								<input class="text" type="text" name="email" id="email" value="" placeholder="email@ucsd.edu" />{{error_email}}
 							</div>
 							<div class="6u">
-								<input class="text" type="text" name="pid" id="pid" value="" placeholder="PID" />{{error_pid}}
+								<input class="text" type="text" name="pid" id="pid" value="{{pid}}" placeholder="PID" />{{error_pid}}
 							</div>
 						</div>
 						<div class="row">
@@ -99,9 +99,7 @@
 							<div class="12u">
 								<ul class="actions">
 									<li>
-										<form method="get" action="signup.html">
-										<a href="#" class="button form">Submit</a>
-										</form>
+										<input type="submit" class="button form">Submit</input>
 									</li>
 								</ul>
 							</div>
