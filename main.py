@@ -35,7 +35,7 @@ class PageHandler(webapp2.RequestHandler):
         self.response.out.write(*a, **kw)
 
     def render_str(self, template, **params):
-        params['user'] = self.user
+        #params['user'] = self.user
         t = jinja_env.get_template(template)
         return t.render(params)
 
@@ -63,21 +63,21 @@ class PageHandler(webapp2.RequestHandler):
     def logout(self):
         self.response.headers.add_header('Set-Cookie', 'user_id=; Path=/')
 
-    def initialize(self, *a, **kw):
-        webapp2.RequestHandler.initialize(self, *a, **kw)
-        uid = self.read_secure_cookie('user_id')
-        self.user = uid and User.by_id(int(uid))
+    #def initialize(self, *a, **kw):
+    #    webapp2.RequestHandler.initialize(self, *a, **kw)
+    #    uid = self.read_secure_cookie('user_id')
+    #    self.user = uid and User.by_id(int(uid))
 
-        if self.request.url.endswith('.json'):
-            self.format = 'json'
-        else:
-            self.format = 'html'
+     #   if self.request.url.endswith('.json'):
+     #      self.format = 'json'
+     #   else:
+     #       self.format = 'html'
 
 class MainPage(PageHandler):
   def get(self):
       if self.request.get('user'):
         user = self.request.get('user')
-        msg = ("Welcome" + user + "!")
+        msg = ("Welcome " + user + "!")
         self.render("index.html", message = msg)
       else:
         #self.response.write("hello world")
@@ -93,7 +93,7 @@ class MainPage(PageHandler):
            
       u = User.login(pid)
       if u:
-        msg = ("Welcome" + u.name + "!")
+        msg = ("Welcome " + u.name + "!")
         # aad user to event model or whatever we're using to keep track of members
         self.render('index.html', message = msg)
       else:
