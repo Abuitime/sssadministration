@@ -9,8 +9,9 @@ from string import letters
 import HTMLParser
 import webapp2
 import jinja2
+import unicodedata
 from google.appengine.ext import db
-
+from webapp2_extras import sessions
 template_dir = os.path.join(os.path.dirname(__file__), 'views')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                autoescape = True,
@@ -62,7 +63,8 @@ class PageHandler(webapp2.RequestHandler):
         if admin and password:
             if check_secure_val(admin) and check_secure_val(password):
                 return True
-        return False    
+        return False 
+        self.redirect('/')   
     def write(self, *a, **kw):
         self.response.out.write(*a, **kw)
 
@@ -87,6 +89,21 @@ class PageHandler(webapp2.RequestHandler):
     def logout(self):
         self.response.headers.add_header('Set-Cookie', 'admin=; Path=/')
         self.response.headers.add_header('Set-Cookie', 'password=; Path=/')
+    def dispatch(self):
+        # Get a session store for this request.
+        self.session_store = sessions.get_store(request=self.request)
+
+        try:
+            # Dispatch the request.
+            webapp2.RequestHandler.dispatch(self)
+        finally:
+            # Save all sessions.
+            self.session_store.save_sessions(self.response)
+
+    @webapp2.cached_property
+    def session(self):
+        # Returns a session using the default cookie key.
+        return self.session_store.get_session()
 
 class MainPage(PageHandler):
   def get(self):
@@ -224,7 +241,7 @@ class Signup(PageHandler):
                       year = self.year,
                       number = self.number,
                       )
-        if not self.name or self.last_name:
+        if not self.name or not self.last_name:
             params['error_name'] = "That's not a complete name."
             have_error = True
         if not self.major:
@@ -233,7 +250,7 @@ class Signup(PageHandler):
         if not self.year:
             params['error_year'] = "Please select your year."
             have_error = True
-        if User.all().count() == 0 and not valid_password(password):
+        if User.all().count() == 0 and not valid_password(self.password):
             params['error_password'] = "That is not a valid password."
 
         if not valid_email(self.email):
@@ -274,6 +291,7 @@ class Register(Signup):
             else: 
                 self.render('signup.html', error_exists = msg)
         else:
+            self.password = make_pw_hash(self.pid, self.password)
             u = User.register(self.pid, self.name, self.last_name, self.major, self.email, self.number, self.year, self.admin, self.password)
             u.put()
 
@@ -295,14 +313,16 @@ class Admin(PageHandler):
             password = self.request.get('password')
             if u and password:
                 if valid_pw(admin, password, u.password):
-                    set_secure_cookie("admin", admin)
-                    set_secure_cookie("password", password)
-                    self.redirect('/admin/tools?msg='%("Hello_"+u.name))
+                    self.dispatch()
+                    self.session['admin'] = True
+                    message = "Welcome"
+                    self.redirect('/admin/tools?msg=%s'%(message))
+
         self.render('admin_login.html', error = "Invalid Login")
 
 class Tools(PageHandler):
     def get(self):
-        if self.admin_auth():
+        if self.session['admin']:
             msg = self.request.get('msg')
             self.render('tools.html', message = msg)
         else:
