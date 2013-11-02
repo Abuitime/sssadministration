@@ -1,0 +1,124 @@
+<!DOCTYPE HTML>
+
+<html>
+	<head>
+		<title>Sign-Up Sheet</title>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+		<meta name="description" content="" />
+		<meta name="keywords" content="" />
+		<link href="http://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,300italic" rel="stylesheet" type="text/css" />
+		<!--[if lte IE 8]><script src="css/ie/html5shiv.js"></script><![endif]-->
+		<script src="js/jquery.min.js"></script>
+		<script src="js/jquery.poptrox.min.js"></script>
+		<script src="js/skel.min.js"></script>
+		<script src="js/init.js"></script>
+		<noscript>
+			<link rel="stylesheet" href="css/skel-noscript.css" />
+			<link rel="stylesheet" href="css/style.css" />
+		</noscript>
+		<!--[if lte IE 8]><link rel="stylesheet" href="css/ie/v8.css" /><![endif]-->
+	</head>
+	<body>
+
+		
+		
+		<!-- Contact -->
+			<article class="container box style3">
+				<header>
+					<h2>SSS</h2>
+					<p>Administration</p>
+				</header>
+			</article>
+		
+		
+				<section>
+					<header>
+						<h3>Form</h3>
+					</header>
+					<form method="post" action="#">
+						<div>{{_exists}}</div>
+						<div class="row">
+							<div class="6u">
+								<input class="text" type="text" name="name" id="name" value="" placeholder="First Name" />
+							</div>
+							<div class="6u">
+								<input class="text" type="text" name="last_name" id="last_name" value="" placeholder="Last Name" />
+							</div>
+							
+						</div>
+						<div class="row">
+							<div class="6u">
+								<input class="text" type="text" name="email" id="email" value="" placeholder="email@ucsd.edu" />{{error_email}}
+							</div>
+							<div class="6u">
+								<input class="text" type="text" name="pid" id="pid" value="" placeholder="PID" />{{error_pid}}
+							</div>
+						</div>
+						<div class="row">
+							<div class="6u">
+								<input class="text" type="tel" name="number" id="number" value="" placeholder="Phone Number" />
+							</div>
+							<div class="6u">
+								<select name="year" id="year">
+									<option value="">Year</option>
+									<option value="1">1nd</option>
+									<option value="2">2nd</option>
+									<option value="3">3th</option>
+									<option value="4">4th</option>
+									<option value="5">5th</option>
+								</select>
+							</div>
+						</div>
+						<div class="row">
+							<div class="12u">
+								<select name="major" id="major">
+									<option value="">Choose a major</option>
+									<option value="1">Bioengineering</option>
+									<option value="2">Computer Science</option>
+									<option value="3">Computer Engineering</option>
+									<option value="4">Electrical Engineering</option>
+									<option value="5">Mechanical Engineering</option>
+									<option value="6">Aerospace Engineering</option>
+									<option value="7">Nano Engineering</option>
+									<option value="8">Chemical Engineering</option>
+									<option value="9">Structural Engineering</option>
+								</select>
+							</div>
+						</div>
+						<div class="row">
+							<div class="12u">
+								<input class="text" type="text" name="concerns" id="concerns" value="" placeholder="Enter your Concerns" />
+							</div>
+						</div>
+						<div class="row">
+							<div class="12u">
+								<textarea name="message" id="message" placeholder="Enter your message"></textarea>
+							</div>
+						</div>
+						<div class="row">
+							<div class="12u">
+								<ul class="actions">
+									<li>
+										<form method="get" action="signup.html">
+										<a href="#" class="button form">Submit</a>
+										</form>
+									</li>
+								</ul>
+							</div>
+						</div>
+					</form>
+				</section>
+			</article>
+		
+		
+		<section id="footer">
+			<ul class="icons">
+				<li><a href="#" class="fa fa-twitter solo"><span>Twitter</span></a></li>
+				<li><a href="#" class="fa fa-facebook solo"><span>Facebook</span></a></li>
+			
+			</ul>
+			
+		</section>
+
+	</body>
+</html>
