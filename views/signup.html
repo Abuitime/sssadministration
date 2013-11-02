@@ -46,29 +46,33 @@
 							<div class="6u">
 								<input class="text" type="text" name="last_name" id="last_name" value="" placeholder="Last Name" />
 							</div>
-							
+							<span class="error_msg">{{error_name}}</span>
 						</div>
 						<div class="row">
 							<div class="6u">
-								<input class="text" type="text" name="email" id="email" value="" placeholder="email@ucsd.edu" />{{error_email}}
+								<input class="text" type="text" name="email" id="email" value="" placeholder="email@ucsd.edu" />
+								<span class="error_msg">{{error_email}}</span>
 							</div>
 							<div class="6u">
-								<input class="text" type="text" name="pid" id="pid" value="{{pid}}" placeholder="PID" />{{error_pid}}
+								<input class="text" type="text" name="pid" id="pid" value="{{pid}}" placeholder="PID" />
+								<span class="error_msg">{{error_pid}}</span>
 							</div>
 						</div>
 						<div class="row">
 							<div class="6u">
 								<input class="text" type="tel" name="number" id="number" value="" placeholder="Phone Number" />
+								<span class="error_msg">{{error_number}}</span>
 							</div>
 							<div class="6u">
 								<select name="year" id="year">
 									<option value="">Year</option>
-									<option value="1">1nd</option>
+									<option value="1">1st</option>
 									<option value="2">2nd</option>
 									<option value="3">3rd</option>
 									<option value="4">4th</option>
 									<option value="5">5th</option>
 								</select>
+								<span class="error_msg">{{error_year}}</span>
 							</div>
 						</div>
 						<div class="row">
@@ -85,8 +89,16 @@
 									<option value="Chemical Engineering">Chemical Engineering</option>
 									<option value="Structural Engineering">Structural Engineering</option>
 								</select>
+								<span class="error_msg">{{error_major}}</span>
 							</div>
 						</div>
+<<<<<<< HEAD
+=======
+						{% autoescape false %}
+						{{key}}
+						{% endautoescape %}
+
+>>>>>>> 1afe15d37703556d4f32b670d15310a0a1142aa0
 						<div class="row">
 							<div class="12u">
 								<ul class="actions">
