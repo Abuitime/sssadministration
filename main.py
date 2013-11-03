@@ -13,11 +13,6 @@ import unicodedata
 from google.appengine.ext import db
 from webapp2_extras import sessions
 
-#Facebook Dependencies Start
-FACEBOOK_APP_ID = "173288699538562"
-FACEBOOK_APP_SECRET = "4b4ff6763f2cb145500ca87c3be8b295"
-
-import facebook
 import webapp2
 import os
 #import jinja2
@@ -135,7 +130,7 @@ class MainPage(PageHandler):
 
   def post(self):
       pid = self.request.get('pid')
-      if(len(pid) == 35):
+      if(len(pid) == 10):
         pid = pid[2:10]
       if not valid_pid(pid):
         msg = 'Invalid PID'
@@ -151,8 +146,8 @@ class Event(db.Model):
     name = db.StringProperty(required = True)
     date = db.StringProperty(required = True)
     location = db.StringProperty(required = True)
-    description = db.Text
-    participants = db.Text
+    description = db.Text()
+    participants = db.Text()
 
     @classmethod
     def create(cls, name, date, location, description, participants):
@@ -319,32 +314,9 @@ class Register(Signup):
                 User.login(u)
                 self.redirect('/?user=%s' %(u.name))
 
-class Admin(PageHandler):
-    def get(self):
-        if(User.all().count() == 0):
-            self.redirect('/signup')
-        self.render('admin_login.html')
-    def post(self):
-        admin = self.request.get('admin')
-        if admin:
-            u = User.by_pid(admin)
-            password = self.request.get('password')
-            if u and password:
-                if valid_pw(admin, password, u.password):
-                    self.dispatch()
-                    self.session['admin'] = True
-                    message = "Welcome"
-                    self.redirect('/admin/tools?msg=%s'%(message))
-
-        self.render('admin_login.html', error = "Invalid Login")
-
 class Tools(PageHandler):
     def get(self):
-        if self.session.get('admin'):
-            msg = self.request.get('msg')
-            self.render('tools.html', message = msg)
-        else:
-            self.redirect("/admin")
+        self.render('dash.html')
 
 class Management(PageHandler):
     def get(self):
@@ -353,157 +325,59 @@ class Management(PageHandler):
         else:
             self.redirect("/admin")
 
-class Event(PageHandler):
+class Events(PageHandler):
     def get(self):
-        if self.admin_auth():
-            self.render("event.html")
-        else:
-            self.redirect('/admin')
-    def post(self):
-        if self.admin_auth():
-            name = self.request.get('name')
-            date = self.request.get('date')
-            location = self.request.get('location')
-            description = self.request.get('description')
-            if(name and date and location and description):
-                e = Event.create(name, date, location, description)
-                e.put()
-                self.redirect("/admin/tools?msg=Event_Created")
-            else:
-                self.render("event.html", name = name, date = date, 
-                            location = location, description = description,
-                            error = "invalid information")
-        else:
-            self.redirect('/admin')
+        events = Event.all().order('-date')
+        e_list = ""
 
-class Logout(PageHandler):
-    def get(self):
-        self.logout()
-        self.redirect('/')
+        for event in events:
+            e_list += """
+            <tr>
+                <td>%s</td>
+                <td>%s</td>
+                <td>%s</td>
+                <td>%s</td>
+            </tr>
+            """ %(event.title, event.location, event.description, event.date)
+        self.render("events.html", events = e_list)
 
-#Facebook Classes Start
-class FacebookUser(db.Model):
-    id = db.StringProperty(required=True)
-    created = db.DateTimeProperty(auto_now_add=True)
-    updated = db.DateTimeProperty(auto_now=True)
-    name = db.StringProperty(required=True)
-    profile_url = db.StringProperty(required=True)
-    access_token = db.StringProperty(required=True)
-
-
-class FacebookBaseHandler(webapp2.RequestHandler):
-    """Provides access to the active Facebook user in self.current_user
-
-    The property is lazy-loaded on first access, using the cookie saved
-    by the Facebook JavaScript SDK to determine the user ID of the active
-    user. See http://developers.facebook.com/docs/authentication/ for
-    more information.
-    """
-    @property
-    def current_user(self):
-        if self.session.get("user"):
-            # User is logged in
-            return self.session.get("user")
-        else:
-            # Either used just logged in or just saw the first page
-            # We'll see here
-            cookie = facebook.get_user_from_cookie(self.request.cookies,
-                                                   FACEBOOK_APP_ID,
-                                                   FACEBOOK_APP_SECRET)
-            if cookie:
-                # Okay so user logged in.
-                # Now, check to see if existing user
-                user = User.get_by_key_name(cookie["uid"])
-                if not user:
-                    # Not an existing user so get user info
-                    graph = facebook.GraphAPI(cookie["access_token"])
-                    profile = graph.get_object("me")
-                    user = FacebookUser(
-                        key_name=str(profile["id"]),
-                        id=str(profile["id"]),
-                        name=profile["name"],
-                        profile_url=profile["link"],
-                        access_token=cookie["access_token"]
-                    )
-                    user.put()
-                elif user.access_token != cookie["access_token"]:
-                    user.access_token = cookie["access_token"]
-                    user.put()
-                # User is now logged in
-                self.session["user"] = dict(
-                    name=user.name,
-                    profile_url=user.profile_url,
-                    id=user.id,
-                    access_token=user.access_token
-                )
-                return self.session.get("user")
-        return None
-
-    def dispatch(self):
-        """
-        This snippet of code is taken from the webapp2 framework documentation.
-        See more at
-        http://webapp-improved.appspot.com/api/webapp2_extras/sessions.html
-
-        """
-        self.session_store = sessions.get_store(request=self.request)
-        try:
-            webapp2.RequestHandler.dispatch(self)
-        finally:
-            self.session_store.save_sessions(self.response)
-
-    @webapp2.cached_property
-    def session(self):
-        """
-        This snippet of code is taken from the webapp2 framework documentation.
-        See more at
-        http://webapp-improved.appspot.com/api/webapp2_extras/sessions.html
-
-        """
-        return self.session_store.get_session()
-
-
-class FacebookHomeHandler(FacebookBaseHandler):
-    def get(self):
-        template = jinja_environment.get_template('example.html')
-        self.response.out.write(template.render(dict(
-            facebook_app_id=FACEBOOK_APP_ID,
-            current_user=self.current_user
-        )))
 
     def post(self):
-        url = self.request.get('url')
-        file = urllib2.urlopen(url)
-        graph = facebook.GraphAPI(self.current_user['access_token'])
-        response = graph.put_photo(file, "Test Image")
-        photo_url = ("http://www.facebook.com/"
-                     "photo.php?fbid={0}".format(response['id']))
-        self.redirect(str(photo_url))
+        name = self.request.get('name')
+        date = self.request.get('date')
+        location = self.request.get('location')
+        description = self.request.get('description')
+        if(name and date and location and description):
+            e = Event.create(name, date, location, description)
+            e.put()
+            self.redirect("/admin/tools/event")
+        else:
+            self.render("event.html", name = name, date = date, 
+                        location = location, description = description,
+                        error = "invalid information")
 
-
-class FacebookLogoutHandler(FacebookBaseHandler):
+class Members(PageHandler):
     def get(self):
-        if self.current_user is not None:
-            self.session['user'] = None
-
-        self.redirect('/')
-
-jinja_environment = jinja2.Environment(
-    loader=jinja2.FileSystemLoader(os.path.dirname(__file__))
-)
-#Facebook Classes End
-
+        users = User.all()
+        u_list = ""
+        for user in users:
+            u_list += """
+            <tr>
+                <td>%s</td>
+                <td>%s</td>
+                <td>%s</td>
+                <td>%s</td>
+                <td>%s</td>
+                <td>%s</td>
+            </tr>
+            """ %(user.name + " " + user.last_name, user.pid, user.major, user.number, user.year, user.email)
+        self.render("members.html", members = u_list)
 
 app = webapp2.WSGIApplication([('/', MainPage),
                                ('/signup', Register),
-                               ('/admin', Admin),
                                ('/admin/tools', Tools),
-                               ('/admin/tools/mgmt', Management),
-                               ('/admin/tools/admin_reg', Register),
-                               ('/admin/tools/event', Event),
-                               ('/admin/logout', Logout),
-                               ('/admin/facebook/login', FacebookHomeHandler),
-                               ('/admin/facebook/logout', FacebookLogoutHandler)
+                               ('/admin/tools/event', Events),
+                               ('/admin/tools/users', Members)
                                ],
                               debug=True,
                               config=config)
